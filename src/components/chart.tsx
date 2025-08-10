@@ -7,9 +7,11 @@ import {
   Title,
   Tooltip,
   Legend,
+  TimeScale,
 } from "chart.js"
 import { Line } from "react-chartjs-2"
 import ZoomPlugin from "chartjs-plugin-zoom"
+import "chartjs-adapter-date-fns"
 // import Hammer from "hammerjs" // Required for touch gestures
 
 ChartJS.register(
@@ -17,6 +19,7 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
+  TimeScale,
   Title,
   Tooltip,
   Legend,
@@ -25,16 +28,59 @@ ChartJS.register(
 
 import type { ChartOptions } from "chart.js"
 
+// const labels = [
+//   "January",
+//   "February",
+//   "March",
+//   "April",
+//   "May",
+//   "June",
+//   "July",
+//   "August",
+//   "September",
+//   "October",
+//   "November",
+//   "December",
+// ]
+
+const labels = [
+  "2025-01-01",
+  "2025-02-01",
+  "2025-03-01",
+  "2025-04-01",
+  "2025-05-01",
+  "2025-06-01",
+  "2025-07-01",
+  "2025-08-01",
+  "2025-09-01",
+  "2025-10-01",
+  "2025-11-01",
+  "2025-12-01",
+]
+
 export const options: ChartOptions<"line"> = {
   responsive: true,
+  scales: {
+    x: {
+      type: "time", // Assuming a time scale
+      time: {
+        unit: "day", // Initial unit
+        displayFormats: {
+          day: "mmm d",
+        },
+      },
+      // labels: labels, // Ensure labels are also set here if needed
+    },
+  },
   plugins: {
     legend: {
       position: "top",
     },
     title: {
       display: true,
-      text: "Chart.js Line Chart",
+      text: "Invoice Chart",
     },
+
     zoom: {
       pan: {
         enabled: true,
@@ -48,28 +94,39 @@ export const options: ChartOptions<"line"> = {
           enabled: true,
         },
         mode: "xy" as const, // Zoom along both x and y axes
+        onZoom: ({ chart }) => {
+          const xMin = chart.scales.x.min
+          const xMax = chart.scales.x.max
+          const timeSpan = xMax - xMin // Milliseconds difference
+          // console.log(timeSpan)
+          let newUnit = "day"
+          let newFormat = "MMM dd"
+
+          if (timeSpan < 3600000 * 24 * 7) {
+            // Less than 7 days
+            newUnit = "hour"
+            newFormat = "MMM dd, h:mm a"
+          } else if (timeSpan < 3600000 * 24 * 30) {
+            // Less than 30 days
+            newUnit = "day"
+            newFormat = "MMM dd"
+          } else {
+            newUnit = "month"
+            newFormat = "MMM yyyy"
+          }
+
+          chart.options.scales.x.time.unit = newUnit
+          chart.options.scales.x.time.displayFormats[newUnit] = newFormat
+
+          chart.update()
+        },
       },
     },
   },
 }
 
-const labels = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-]
-
 export const data = {
-  labels,
+  // labels,
   datasets: [
     {
       label: "Dataset 1",
@@ -88,5 +145,9 @@ export const data = {
 }
 
 export function Chart() {
-  return <Line options={options} data={data} />
+  return (
+    <div className="my-4">
+      <Line options={options} data={data} />
+    </div>
+  )
 }
